@@ -6,10 +6,9 @@ from PIL import Image, ImageTk  # For activity images
 import io
 
 # API Keys (Replace with your actual keys)
-GOOGLE_PLACES_API_KEY = "AIzaSyAiR8XY_8L2iGxvisT2fbDNZKuc4_kj6EU"
+GOOGLE_PLACES_API_KEY = ""
 TICKETMASTER_API_KEY = "5PCboFnz3SOHAQMavvP2cqEOloDYh8MQ"
 CARBON_INTERFACE_API_KEY = "QcsqZqNgk2pMGCeON7kjKw"
-
 
 # Constants
 ASPECT_RATIO = (19.5, 9)  # iPhone 16 ratio
@@ -66,7 +65,7 @@ class SustainableActivityApp:
                 "name": result.get("name"),
                 "location": result.get("formatted_address"),
                 "image": result.get("photos", [{}])[0].get("photo_reference"),
-                "sustainability": self.get_carbon_footprint("event")
+                "sustainability": self.get_carbon_footprint()
             })
         
         return places
@@ -82,17 +81,22 @@ class SustainableActivityApp:
                     "name": event.get("name"),
                     "location": event.get("_embedded", {}).get("venues", [{}])[0].get("name", "Unknown Location"),
                     "image": event.get("images", [{}])[0].get("url"),
-                    "sustainability": self.get_carbon_footprint("event")
+                    "sustainability": self.get_carbon_footprint()
                 })
         
         return events
 
-    def get_carbon_footprint(self, activity_type):
+    def get_carbon_footprint(self):
         url = "https://www.carboninterface.com/api/v1/estimates"
         headers = {"Authorization": f"Bearer {CARBON_INTERFACE_API_KEY}", "Content-Type": "application/json"}
-        data = {"type": "event"}  # Example, modify based on API needs
-        response = requests.post(url, json=data, headers=headers).json()
-        return response.get("data", {}).get("attributes", {}).get("carbon_kg", "Unknown")
+        data = {"type": "electricity", "electricity_unit": "kwh", "electricity_value": 10, "country": "US"}  # Example request
+        response = requests.post(url, json=data, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("data", {}).get("attributes", {}).get("carbon_kg", "Unknown")
+        else:
+            return "Error"
 
     def display_activities(self, activities):
         for widget in self.scrollable_frame.winfo_children():
